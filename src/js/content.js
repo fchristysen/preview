@@ -14,6 +14,8 @@ import { FILTER, HIDEOTHER, SHOWALL } from "./constants/toggleValueEnum";
 import isChangeRequestUpdated from "./github/isChangeRequestUpdated";
 
 import "./content.css";
+import progressBar, { setProgress, dismiss } from "./utils/ProgressBar";
+import ProgressBar from "./utils/ProgressBar";
 
 let observer;
 const STORAGE_KEY = "preview:mode";
@@ -54,24 +56,31 @@ const runFileFilter = async prUrl => {
 };
 
 const runPullsSection = async prUrl => {
+  const main = document.querySelector(".application-main");
+  const pb = new ProgressBar();
+  main.insertBefore(pb.element, main.childNodes[0]);
+
   const repo = getRepoInfoFromUrl(prUrl);
   const prItems = document.querySelectorAll(
     ".js-active-navigation-container > li"
   );
-  for (const node of prItems) {
-    const statusNode = node.querySelector(".mt-1 > .d-inline-block > a");
+  for (var i = 0; i < prItems.length; i++) {
+    const statusNode = prItems[i].querySelector(".mt-1 > .d-inline-block > a");
     const status = statusNode ? statusNode.innerHTML.trim() : "";
     if (status.includes("Changes requested")) {
-      const prNumber = node.id
+      const prNumber = prItems[i].id
         .toString()
         .substring(6)
         .trim();
       const changed = await isChangeRequestUpdated(prNumber, repo);
       if (changed) {
-        node.classList.add("request-updated");
+        prItems[i].classList.add("request-updated");
       }
     }
+    pb.setProgress((i + 1) * 100 / prItems.length);
+    console.log((i + 1) * 100 / prItems.length);
   }
+  pb.dismiss();
 };
 
 chrome.runtime.onMessage.addListener((request, sender) => {
